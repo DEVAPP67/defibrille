@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Quiz Premiers Secours PSE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ===================== CONFIG ===================== */
+    /* ⚠️  REMPLACER CES DEUX URLS AVANT DE PUBLIER  ⚠️  */
+    /* Voir README.md pour les instructions               */
+
+    :root {
+      --c-red:    #E24B4A;
+      --c-blue:   #378ADD;
+      --c-green:  #5BAD72;
+      --c-amber:  #EF9F27;
+      --c-purple: #7F77DD;
+
+      --c-red-bg:    #FCEBEB;
+      --c-blue-bg:   #E6F1FB;
+      --c-green-bg:  #EAF3DE;
+      --c-amber-bg:  #FAEEDA;
+      --c-purple-bg: #EEEDFE;
+
+      --c-red-border:    #F7C1C1;
+      --c-blue-border:   #B5D4F4;
+      --c-green-border:  #C0DD97;
+      --c-amber-border:  #FAC775;
+      --c-purple-border: #CECBF6;
+
+      --bg: #F5F4F0;
+      --card: #FFFFFF;
+      --text: #1A1A1A;
+      --text-muted: #6B6B6B;
+      --border: #E0DDD6;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 480px;
+      padding: 0 16px 40px;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+    .screen.active { display: flex; }
+
+    /* ====== LOADING ====== */
+    #screen-loading {
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    .loader-ring {
+      width: 56px; height: 56px;
+      border: 4px solid var(--border);
+      border-top-color: var(--c-red);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ====== INTRO ====== */
+    #screen-intro { padding-top: 48px; gap: 0; }
+
+    .intro-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .intro-icon {
+      width: 80px; height: 80px;
+      background: var(--c-red);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 36px;
+    }
+    .intro-title {
+      font-size: 26px; font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .intro-sub {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    /* Categories preview - Trivial Pursuit style */
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+    .cat-chip {
+      border-radius: 12px;
+      padding: 10px 6px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .cat-chip .cat-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+
+    .input-wrap {
+      margin-bottom: 16px;
+    }
+    .input-wrap label {
+      display: block;
+      font-size: 14px; font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .input-wrap input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'Nunito', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      background: var(--card);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-wrap input:focus { border-color: var(--c-red); }
+
+    /* ====== QUESTION ====== */
+    #screen-question { padding-top: 20px; gap: 0; }
+
+    .q-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .q-counter { font-size: 13px; font-weight: 700; color: var(--text-muted); }
+    .q-score { font-size: 13px; font-weight: 700; color: var(--text-muted); }
+
+    .progress-bar {
+      height: 6px; background: var(--border);
+      border-radius: 6px; margin-bottom: 20px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 6px;
+      transition: width 0.4s ease;
+    }
+
+    /* Trivial Pursuit pie indicator */
+    .tp-dots {
+      display: flex; gap: 6px; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .tp-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: all 0.3s;
+    }
+    .tp-dot.done { border-color: transparent; }
+    .tp-dot.current { transform: scale(1.4); }
+    .tp-dot.upcoming { border-width: 2px; background: transparent !important; }
+
+    .category-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+    .category-badge .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+
+    .question-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+      border: 2px solid transparent;
+    }
+    .question-text {
+      font-size: 16px; font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .answers { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+
+    .answer-wrap {
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 2px solid var(--border);
+      background: var(--card);
+      transition: border-color 0.25s, background 0.25s;
+    }
+    .answer-btn {
+      width: 100%;
+      background: none; border: none;
+      padding: 13px 14px;
+      display: flex; align-items: flex-start; gap: 10px;
+      cursor: pointer;
+      text-align: left;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 600;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .answer-btn:active { opacity: 0.85; }
+    .answer-letter {
+      flex-shrink: 0;
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .expl-text {
+      display: none;
+      padding: 8px 14px 12px 48px;
+      font-size: 12px; font-weight: 600;
+      line-height: 1.55;
+      border-top: 1px solid transparent;
+    }
+
+    /* States after answer */
+    .answer-wrap.correct {
+      border-color: var(--c-green);
+      background: var(--c-green-bg);
+    }
+    .answer-wrap.correct .answer-btn { color: #2A6B3A; }
+    .answer-wrap.correct .answer-letter { background: var(--c-green); color: #fff; }
+    .answer-wrap.correct .expl-text { display: block; color: #2A6B3A; border-color: var(--c-green-border); }
+
+    .answer-wrap.wrong {
+      border-color: var(--c-red);
+      background: var(--c-red-bg);
+    }
+    .answer-wrap.wrong .answer-btn { color: #8B2020; }
+    .answer-wrap.wrong .answer-letter { background: var(--c-red); color: #fff; }
+    .answer-wrap.wrong .expl-text { display: block; color: #8B2020; border-color: var(--c-red-border); }
+
+    .answer-wrap.other .expl-text { display: block; color: var(--text-muted); border-color: var(--border); }
+    .answer-wrap.other { opacity: 0.6; }
+
+    #next-btn {
+      width: 100%;
+      padding: 15px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--text);
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-size: 15px; font-weight: 800;
+      cursor: pointer;
+      display: none;
+      transition: opacity 0.2s;
+      margin-top: 4px;
+    }
+    #next-btn:active { opacity: 0.8; }
+
+    /* ====== END ====== */
+    #screen-end { padding-top: 32px; align-items: center; gap: 0; }
+
+    .end-circle {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .end-pct {
+      font-size: 30px; font-weight: 800;
+      line-height: 1;
+    }
+    .end-label { font-size: 12px; font-weight: 700; opacity: 0.8; }
+    .end-msg {
+      font-size: 17px; font-weight: 700;
+      text-align: center;
+      margin-bottom: 28px;
+      line-height: 1.4;
+      max-width: 300px;
+    }
+
+    /* Category breakdown - Trivial Pursuit style */
+    .cat-breakdown {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .cat-card {
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .cat-card-header {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .cat-card-header .dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .cat-card-score {
+      font-size: 20px; font-weight: 800;
+    }
+    .cat-card-bar {
+      height: 4px; background: rgba(0,0,0,0.12); border-radius: 4px; overflow: hidden;
+    }
+    .cat-card-fill { height: 100%; border-radius: 4px; }
+
+    /* Leaderboard */
+    .leaderboard {
+      width: 100%;
+      margin-bottom: 24px;
+    }
+    .lb-title {
+      font-size: 14px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .lb-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: var(--card);
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      border: 2px solid transparent;
+    }
+    .lb-row.me { border-color: var(--c-red); }
+    .lb-rank {
+      font-size: 14px; font-weight: 800; color: var(--text-muted);
+      width: 20px; flex-shrink: 0;
+    }
+    .lb-name { font-weight: 700; flex: 1; font-size: 14px; }
+    .lb-score { font-size: 14px; font-weight: 800; }
+    .lb-pct {
+      font-size: 12px; color: var(--text-muted); font-weight: 700;
+      min-width: 36px; text-align: right;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 15px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--c-red);
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+      font-size: 15px; font-weight: 800;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:active { opacity: 0.85; }
+    .btn-secondary {
+      width: 100%;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-secondary:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+<!-- ========== LOADING ========== -->
+<div id="screen-loading" class="screen active">
+  <div class="loader-ring"></div>
+  <p style="font-size:14px;font-weight:700;color:var(--text-muted);">Chargement des questions…</p>
+</div>
+
+<!-- ========== INTRO ========== -->
+<div id="screen-intro" class="screen">
+  <div class="intro-header">
+    <div class="intro-icon">🚑</div>
+    <h1 class="intro-title">Quiz PSE</h1>
+    <p class="intro-sub">Révisez les gestes qui sauvent — <strong id="q-count">25</strong> questions · 5 catégories</p>
+  </div>
+
+  <div class="categories-grid" id="cats-preview"></div>
+
+  <div class="input-wrap">
+    <label for="player-name">Ton prénom</label>
+    <input type="text" id="player-name" placeholder="Ex: Marie" maxlength="30" autocomplete="off">
+  </div>
+  <button class="btn-primary" id="start-btn">Commencer ▶</button>
+</div>
+
+<!-- ========== QUESTION ========== -->
+<div id="screen-question" class="screen">
+  <div class="q-header">
+    <span class="q-counter" id="q-counter">1 / 25</span>
+    <span class="q-score" id="q-score-top">0 ✓</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="tp-dots" id="tp-dots"></div>
+
+  <div id="cat-badge" class="category-badge">
+    <span class="dot"></span><span id="cat-name"></span>
+  </div>
+
+  <div class="question-card">
+    <p class="question-text" id="q-text"></p>
+  </div>
+
+  <div class="answers" id="answers"></div>
+  <button id="next-btn">Question suivante →</button>
+</div>
+
+<!-- ========== END ========== -->
+<div id="screen-end" class="screen">
+  <div class="end-circle" id="end-circle">
+    <span class="end-pct" id="end-pct">0%</span>
+    <span class="end-label" id="end-score-label">0 / 25</span>
+  </div>
+  <p class="end-msg" id="end-msg"></p>
+
+  <div class="cat-breakdown" id="cat-breakdown"></div>
+
+  <div class="leaderboard" id="leaderboard-wrap" style="display:none;">
+    <p class="lb-title">🏆 Classement</p>
+    <div id="leaderboard-list"></div>
+  </div>
+
+  <button class="btn-primary" onclick="restartQuiz()">🔄 Rejouer</button>
+  <button class="btn-secondary" onclick="showLeaderboard()">Voir tous les scores</button>
+</div>
+
+<script>
+// =====================================================================
+//  ⚠️  CONFIGURATION — REMPLACEZ CES DEUX VALEURS  ⚠️
+// =====================================================================
+
+// 1. URL CSV de la feuille Questions publiée (voir README.md §2)
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1YlZ5K4aEeISSeK4tc_DleUtBLXwaSlmGEqb7LMZ8v1g/edit?usp=sharing';
+
+// 2. URL de votre Apps Script déployé (voir README.md §4)
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1t0oPO3mnu5orXWY-9AYVUZr-ylV-1JS-jNB5E3YIC1tfyuMV6EQTxI2Fd-jLnp2O/exec';
+
+// =====================================================================
+
+const CATEGORIES = {
+  'Urgences Vitales':       { color: '#E24B4A', bg: '#FCEBEB', border: '#F7C1C1', emoji: '🚨' },
+  'Détresses & Bilans':     { color: '#378ADD', bg: '#E6F1FB', border: '#B5D4F4', emoji: '📋' },
+  'Hygiène & Protection':   { color: '#5BAD72', bg: '#EAF3DE', border: '#C0DD97', emoji: '🧤' },
+  'Malaises & Affections':  { color: '#EF9F27', bg: '#FAEEDA', border: '#FAC775', emoji: '💊' },
+  'Atteintes Particulières':{ color: '#7F77DD', bg: '#EEEDFE', border: '#CECBF6', emoji: '⚡' },
+};
+
+let allQuestions = [];
+let questions    = [];
+let currentQ     = 0;
+let score        = 0;
+let playerName   = '';
+let answered     = false;
+let catScores    = {};
+
+// ---- Init ----
+window.addEventListener('DOMContentLoaded', loadQuestions);
+
+function loadQuestions() {
+  if (SHEET_CSV_URL === 'REMPLACER_ICI_URL_CSV_QUESTIONS') {
+    // Mode démo : utiliser les questions embarquées
+    loadDemoQuestions();
+    return;
+  }
+  fetch(SHEET_CSV_URL)
+    .then(r => r.text())
+    .then(csv => {
+      allQuestions = parseCSV(csv);
+      if (allQuestions.length === 0) { loadDemoQuestions(); return; }
+      initIntro();
+    })
+    .catch(() => loadDemoQuestions());
+}
+
+function parseCSV(csv) {
+  const lines = csv.trim().split('\n');
+  const qs = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCSVLine(lines[i]);
+    if (cols.length < 11) continue;
+    qs.push({
+      cat:    cols[0].trim(),
+      q:      cols[1].trim(),
+      opts:   [cols[2].trim(), cols[3].trim(), cols[4].trim(), cols[5].trim()],
+      ok:     ['A','B','C','D'].indexOf(cols[6].trim().toUpperCase()),
+      expls:  [cols[7].trim(), cols[8].trim(), cols[9].trim(), cols[10].trim()]
+    });
+  }
+  return qs;
+}
+
+function splitCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; continue; }
+    if (c === ',' && !inQ) { result.push(cur); cur = ''; continue; }
+    cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+function loadDemoQuestions() {
+  // Questions de secours si la Sheet n'est pas encore configurée
+  allQuestions = DEMO_QUESTIONS;
+  initIntro();
+}
+
+function initIntro() {
+  const cats = Object.keys(CATEGORIES);
+  const preview = document.getElementById('cats-preview');
+  cats.forEach(cat => {
+    const c = CATEGORIES[cat];
+    const short = cat.split(' ')[0];
+    preview.innerHTML += `
+      <div class="cat-chip" style="background:${c.bg}; color:${c.color};">
+        <div class="cat-dot" style="background:${c.color}; font-size:13px;">${c.emoji}</div>
+        <span>${short}</span>
+      </div>`;
+  });
+
+  document.getElementById('q-count').textContent = allQuestions.length;
+  document.getElementById('screen-loading').classList.remove('active');
+  document.getElementById('screen-intro').classList.add('active');
+
+  document.getElementById('start-btn').addEventListener('click', startQuiz);
+  document.getElementById('player-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startQuiz();
+  });
+}
+
+function startQuiz() {
+  const nameInput = document.getElementById('player-name').value.trim();
+  playerName = nameInput || 'Anonyme';
+
+  // Mélanger les questions
+  questions = shuffle([...allQuestions]);
+  currentQ = 0;
+  score    = 0;
+  catScores = {};
+  Object.keys(CATEGORIES).forEach(c => catScores[c] = { correct: 0, total: 0 });
+
+  document.getElementById('screen-intro').classList.remove('active');
+  document.getElementById('screen-question').classList.add('active');
+
+  buildDots();
+  renderQuestion();
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function buildDots() {
+  const container = document.getElementById('tp-dots');
+  container.innerHTML = '';
+  questions.forEach((q, i) => {
+    const c = CATEGORIES[q.cat] || CATEGORIES['Urgences Vitales'];
+    const dot = document.createElement('div');
+    dot.className = 'tp-dot ' + (i === 0 ? 'current' : 'upcoming');
+    dot.id = `dot-${i}`;
+    dot.style.background = i === 0 ? c.color : c.bg;
+    dot.style.borderColor = c.color;
+    container.appendChild(dot);
+  });
+}
+
+function updateDots() {
+  questions.forEach((q, i) => {
+    const dot = document.getElementById(`dot-${i}`);
+    if (!dot) return;
+    const c = CATEGORIES[q.cat] || CATEGORIES['Urgences Vitales'];
+    if (i < currentQ) {
+      dot.className = 'tp-dot done';
+      dot.style.background = c.color;
+      dot.style.borderColor = 'transparent';
+    } else if (i === currentQ) {
+      dot.className = 'tp-dot current';
+      dot.style.background = c.color;
+      dot.style.borderColor = c.color;
+    } else {
+      dot.className = 'tp-dot upcoming';
+      dot.style.background = c.bg;
+      dot.style.borderColor = c.color;
+    }
+  });
+}
+
+function renderQuestion() {
+  answered = false;
+  const q = questions[currentQ];
+  const c = CATEGORIES[q.cat] || CATEGORIES['Urgences Vitales'];
+
+  // Header
+  document.getElementById('q-counter').textContent = `${currentQ + 1} / ${questions.length}`;
+  document.getElementById('q-score-top').textContent = `${score} ✓`;
+
+  // Progress
+  const pct = Math.round((currentQ / questions.length) * 100);
+  const fill = document.getElementById('progress-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = c.color;
+
+  // Dots
+  updateDots();
+
+  // Badge catégorie
+  const badge = document.getElementById('cat-badge');
+  badge.style.background = c.bg;
+  badge.style.color = c.color;
+  badge.style.borderColor = c.border || c.bg;
+  badge.querySelector('.dot').style.background = c.color;
+  document.getElementById('cat-name').textContent = q.cat;
+
+  // Question
+  document.getElementById('q-text').textContent = q.q;
+
+  // Answers
+  const container = document.getElementById('answers');
+  container.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D'];
+  q.opts.forEach((opt, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'answer-wrap';
+    wrap.id = `aw-${i}`;
+    wrap.innerHTML = `
+      <button class="answer-btn" onclick="checkAnswer(${i})">
+        <span class="answer-letter">${letters[i]}</span>
+        <span>${opt}</span>
+      </button>
+      <div class="expl-text" id="expl-${i}">${q.expls[i]}</div>`;
+    container.appendChild(wrap);
+  });
+
+  // Next btn
+  const btn = document.getElementById('next-btn');
+  btn.style.display = 'none';
+  btn.style.background = c.color;
+  btn.textContent = currentQ < questions.length - 1 ? 'Question suivante →' : 'Voir mon résultat →';
+}
+
+function checkAnswer(chosen) {
+  if (answered) return;
+  answered = true;
+  const q = questions[currentQ];
+  const correct = (chosen === q.ok);
+  if (correct) score++;
+
+  // Track categories
+  catScores[q.cat].total++;
+  if (correct) catScores[q.cat].correct++;
+
+  q.opts.forEach((_, i) => {
+    const wrap = document.getElementById(`aw-${i}`);
+    wrap.querySelector('.answer-btn').onclick = null;
+    if (i === q.ok) {
+      wrap.className = 'answer-wrap correct';
+    } else if (i === chosen && !correct) {
+      wrap.className = 'answer-wrap wrong';
+    } else {
+      wrap.className = 'answer-wrap other';
+    }
+  });
+
+  const btn = document.getElementById('next-btn');
+  btn.style.display = 'block';
+  btn.onclick = nextQuestion;
+
+  // Scroll to next button
+  setTimeout(() => btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 200);
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= questions.length) {
+    showEnd();
+  } else {
+    renderQuestion();
+    window.scrollTo(0, 0);
+  }
+}
+
+function showEnd() {
+  document.getElementById('screen-question').classList.remove('active');
+  document.getElementById('screen-end').classList.add('active');
+  window.scrollTo(0, 0);
+
+  const pct = Math.round((score / questions.length) * 100);
+  const lvl = pct >= 80 ? 'green' : pct >= 50 ? 'amber' : 'red';
+  const colors = { green: '#5BAD72', amber: '#EF9F27', red: '#E24B4A' };
+  const bgs    = { green: '#EAF3DE', amber: '#FAEEDA', red: '#FCEBEB' };
+  const msgs = {
+    green: `Excellent ${playerName} ! Tu maîtrises les gestes qui sauvent. 💪`,
+    amber: `Bien joué ! Encore quelques révisions et tu seras au top.`,
+    red:   `Continue à t'entraîner — ces gestes peuvent sauver des vies. 💪`
+  };
+
+  const circle = document.getElementById('end-circle');
+  circle.style.background = bgs[lvl];
+  circle.style.color = colors[lvl];
+  document.getElementById('end-pct').textContent = pct + '%';
+  document.getElementById('end-score-label').textContent = `${score} / ${questions.length}`;
+  document.getElementById('end-msg').textContent = msgs[lvl];
+
+  // Category breakdown
+  const breakdown = document.getElementById('cat-breakdown');
+  breakdown.innerHTML = '';
+  Object.entries(catScores).forEach(([cat, data]) => {
+    if (data.total === 0) return;
+    const c = CATEGORIES[cat];
+    const p = Math.round((data.correct / data.total) * 100);
+    breakdown.innerHTML += `
+      <div class="cat-card" style="background:${c.bg};">
+        <div class="cat-card-header" style="color:${c.color};">
+          <span class="dot" style="background:${c.color};"></span>
+          <span>${cat.split(' ')[0]}</span>
+        </div>
+        <div class="cat-card-score" style="color:${c.color};">${data.correct}/${data.total}</div>
+        <div class="cat-card-bar">
+          <div class="cat-card-fill" style="width:${p}%;background:${c.color};"></div>
+        </div>
+      </div>`;
+  });
+
+  // Save score
+  saveScore(pct);
+}
+
+function saveScore(pct) {
+  if (SCRIPT_URL === 'REMPLACER_ICI_URL_APPS_SCRIPT') return;
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prenom: playerName, score, total: questions.length, pct })
+  }).catch(() => {});
+}
+
+function showLeaderboard() {
+  const wrap = document.getElementById('leaderboard-wrap');
+  if (SCRIPT_URL === 'REMPLACER_ICI_URL_APPS_SCRIPT') {
+    wrap.style.display = 'block';
+    document.getElementById('leaderboard-list').innerHTML =
+      '<p style="font-size:13px;color:var(--text-muted);font-weight:600;">Configurez l\'Apps Script pour voir le classement.</p>';
+    return;
+  }
+  wrap.style.display = 'block';
+  document.getElementById('leaderboard-list').innerHTML = '<p style="font-size:13px;color:var(--text-muted);font-weight:600;">Chargement…</p>';
+  fetch(SCRIPT_URL)
+    .then(r => r.json())
+    .then(rows => {
+      const list = document.getElementById('leaderboard-list');
+      if (!rows || rows.length === 0) {
+        list.innerHTML = '<p style="font-size:13px;color:var(--text-muted);font-weight:600;">Aucun score enregistré.</p>';
+        return;
+      }
+      list.innerHTML = '';
+      rows.slice(0, 10).forEach((row, i) => {
+        const isMe = (row.prenom === playerName && row.score == score);
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+        list.innerHTML += `
+          <div class="lb-row ${isMe ? 'me' : ''}">
+            <span class="lb-rank">${medal || (i+1)}</span>
+            <span class="lb-name">${row.prenom}</span>
+            <span class="lb-score">${row.score}/${row.total}</span>
+            <span class="lb-pct">${row.pct}</span>
+          </div>`;
+      });
+    })
+    .catch(() => {
+      document.getElementById('leaderboard-list').innerHTML =
+        '<p style="font-size:13px;color:var(--text-muted);font-weight:600;">Impossible de charger le classement.</p>';
+    });
+}
+
+function restartQuiz() {
+  document.getElementById('screen-end').classList.remove('active');
+  document.getElementById('screen-intro').classList.add('active');
+  document.getElementById('leaderboard-wrap').style.display = 'none';
+}
+
+// =====================================================================
+//  QUESTIONS DE DÉMO (si la Google Sheet n'est pas encore configurée)
+// =====================================================================
+const DEMO_QUESTIONS = [
+  { cat:'Urgences Vitales', q:"En RCP adulte, quel est le ratio compressions / insufflations ?", opts:["15 / 2","30 / 2","20 / 1","30 / 1"], ok:1, expls:["Le ratio 15/2 s'applique à la RCP pédiatrique à 2 secouristes — pas chez l'adulte.","Correct. 30 compressions suivies de 2 insufflations répétées sans interruption (05PR01).","Le ratio 20/1 n'est pas prévu par les procédures PSE.","Une seule insufflation est insuffisante selon le PSE."] },
+  { cat:'Urgences Vitales', q:"En RCP chez l'enfant ou le nourrisson, combien d'insufflations initiales faut-il réaliser ?", opts:["2","3","5","Aucune — on débute par les compressions"], ok:2, expls:["2 insufflations est le nombre par cycle — pas au démarrage.","3 insufflations initiales n'est pas le nombre indiqué.","Correct. 5 insufflations initiales avant les compressions (05PR03).","L'AC de l'enfant est majoritairement respiratoire — les insufflations initiales sont prioritaires."] },
+  { cat:'Urgences Vitales', q:"Lors d'une obstruction partielle des voies aériennes, quelle est la conduite à tenir ?", opts:["Compressions abdominales immédiates","5 claques dans le dos","Ne jamais désobstruer — encourager à tousser","Allonger la victime et alerter"], ok:2, expls:["Les compressions abdominales sont réservées à l'obstruction complète.","Les claques s'appliquent en cas d'obstruction complète.","Correct. Le PSE interdit les manœuvres de désobstruction en obstruction partielle (05PR10).","L'allongement n'est pas la conduite indiquée."] },
+  { cat:'Urgences Vitales', q:"En cas d'hémorragie externe, quelle est la première action ?", opts:["Alerter le 15","Se protéger avec des gants puis comprimer manuellement","Allonger la victime","Poser directement un garrot"], ok:1, expls:["L'alerte ne doit pas retarder l'hémostase.","Correct. Gants de protection puis compression manuelle en priorité (05PR08).","L'allongement ne stoppe pas l'hémorragie.","Le garrot est utilisé seulement si la compression est inefficace."] },
+  { cat:'Hygiène & Protection', q:"Lors du retrait des gants à usage unique, quelle est la procédure correcte ?", opts:["Retirer les deux simultanément","Saisir par le poignet, retourner le premier, puis insérer les doigts à l'intérieur du second sans toucher sa face externe","Utiliser les dents","Tirer sur les doigts depuis la face externe"], ok:1, expls:["Retirer les deux ensemble expose la main nue à la face externe souillée.","Correct. Procédure PSE pour éviter toute contamination (04FT07).","L'utilisation des dents expose les muqueuses.","Tirer sur les doigts expose les mains à la face souillée."] },
+  { cat:'Détresses & Bilans', q:"Une victime est en arrêt cardiaque si elle présente...", opts:["Pâleur et pouls rapide","Perte de connaissance avec absence de mouvements ventilatoires ou ventilation agonique","Perte de connaissance et cyanose uniquement","Convulsions et cyanose"], ok:1, expls:["Ces signes correspondent à une détresse circulatoire.","Correct. Perte de connaissance + absence de ventilation ou ventilation agonique (≤6 mvts/min) (05AC01).","La cyanose n'est pas le critère diagnostique principal.","Les convulsions peuvent survenir mais ne sont pas les critères principaux."] },
+  { cat:'Malaises & Affections', q:"Quelle est la cause la plus fréquente d'AVC selon le PSE 2024 ?", opts:["Hémorragie cérébrale","Obstruction d'une artère cérébrale (85% des cas)","Traumatisme crânien","Hypoglycémie"], ok:1, expls:["L'hémorragie cérébrale est la deuxième cause.","Correct. L'obstruction artérielle représente 85% des AVC (06AC01).","Le traumatisme crânien n'est pas une cause d'AVC.","L'hypoglycémie peut simuler un AVC mais n'en est pas une cause."] },
+  { cat:'Malaises & Affections', q:"En cas de crise convulsive généralisée, que ne faut-il surtout pas faire ?", opts:["Protéger la tête","Écarter les personnes","Placer un objet entre les dents","Allonger la victime au sol"], ok:2, expls:["Protéger la tête est une action recommandée.","Écarter les personnes est recommandé.","Correct. Le PSE interdit formellement de rien placer entre les dents (06PR02).","Allonger la victime est recommandé."] },
+  { cat:'Atteintes Particulières', q:"Face à une victime en contact avec un conducteur électrique sous tension, quelle est la première action ?", opts:["Tirer la victime","S'approcher prudemment","Ne pas s'approcher avant que l'alimentation soit coupée","Arroser avec de l'eau"], ok:2, expls:["Tirer sur la victime expose le secouriste à l'électrisation.","S'approcher sans coupure du courant est mortel.","Correct. Ne jamais approcher ni toucher avant coupure certaine (07PR01).","L'eau est conductrice et aggraverait le danger."] },
+  { cat:'Détresses & Bilans', q:"Quelle position pour une victime consciente présentant une détresse respiratoire ?", opts:["Allongée à plat","PLS","Cuisses fléchies","Assise ou demi-assise"], ok:3, expls:["La position allongée est indiquée en détresse circulatoire.","La PLS est pour la victime inconsciente.","Cette position est pour les douleurs abdominales.","Correct. La position assise libère le diaphragme et améliore la respiration (05PR07)."] }
+];
+</script>
+</body>
+</html>
