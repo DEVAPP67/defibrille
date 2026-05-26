@@ -117,7 +117,7 @@
     #screen-selecting{align-items:center;justify-content:center;gap:0;}
     .sel-inner{display:flex;flex-direction:column;align-items:center;width:100%;gap:32px;}
     .ambulance-wrap{width:100%;position:relative;height:64px;overflow:hidden;}
-    .ambulance-emoji{position:absolute;top:4px;font-size:44px;animation:drive 1.8s cubic-bezier(.4,0,.6,1) forwards;will-change:transform;}
+    .ambulance-emoji{position:absolute;top:4px;font-size:44px;transform:scaleX(-1);animation:drive 2.8s cubic-bezier(.4,0,.6,1) forwards;will-change:transform;}
     .road{position:absolute;bottom:0;left:0;right:0;height:3px;background:repeating-linear-gradient(90deg,var(--muted) 0,var(--muted) 18px,transparent 18px,transparent 36px);opacity:.35;}
     @keyframes drive{from{left:-70px;}to{left:calc(100% + 10px);}}
     .sel-label{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:.3px;}
@@ -358,13 +358,13 @@ function startQuiz() {
     li++;
     if (li < labels.length) el.innerHTML = labels[li] + (li < labels.length-1 ? dots : ' ⚡');
     else clearInterval(iv);
-  }, 600);
+  }, 1000);
 
   setTimeout(() => {
     document.getElementById('screen-selecting').classList.remove('active');
     document.getElementById('screen-question').classList.add('active');
     buildDots(); renderQuestion();
-  }, 1900);
+  }, 3100);
 }
 
 function shuffle(a) {
