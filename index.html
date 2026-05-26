@@ -67,7 +67,9 @@
     #screen-question{padding-top:18px;gap:0;}
     .q-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
     .q-num{font-size:13px;font-weight:700;color:var(--muted);}
-    .q-pts{font-size:13px;font-weight:800;color:var(--red);background:var(--red-light);padding:3px 10px;border-radius:20px;}
+    .q-pts{display:flex;gap:6px;align-items:center;}
+    .q-pts-ok{font-size:13px;font-weight:800;color:#2A6B3A;background:var(--c-green-bg);padding:3px 10px;border-radius:20px;}
+    .q-pts-ko{font-size:13px;font-weight:800;color:var(--red-dark);background:var(--red-light);padding:3px 10px;border-radius:20px;}
     .progress-track{height:5px;background:var(--cream-dark);border-radius:5px;margin-bottom:18px;overflow:hidden;}
     .progress-fill{height:100%;background:var(--red);border-radius:5px;transition:width .4s ease;}
     .tp-dots{display:flex;gap:5px;justify-content:center;margin-bottom:18px;}
@@ -171,7 +173,10 @@
 <div id="screen-question" class="screen">
   <div class="q-topbar">
     <span class="q-num" id="q-counter">1 / 10</span>
-    <span class="q-pts" id="q-score-top">0 ✓</span>
+    <div class="q-pts">
+      <span class="q-pts-ok" id="q-score-ok">0 ✓</span>
+      <span class="q-pts-ko" id="q-score-ko">0 ✗</span>
+    </div>
   </div>
   <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
   <div class="tp-dots" id="tp-dots"></div>
@@ -221,12 +226,10 @@
 
 <script>
 // ================================================================
-// 1. URL CSV de la feuille Questions publiée 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1YlZ5K4aEeISSeK4tc_DleUtBLXwaSlmGEqb7LMZ8v1g/gviz/tq?tqx=out:csv&sheet=Questions';
 
 // 2. URL de votre Apps Script déployé
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1t0oPO3mnu5orXWY-9AYVUZr-ylV-1JS-jNB5E3YIC1tfyuMV6EQTxI2Fd-jLnp2O/exec';
-
 const NB_QUESTIONS  = 10; // Nombre de questions par partie
 // ================================================================
 
@@ -335,7 +338,8 @@ function renderQuestion() {
   const q=questions[currentQ], c=CATEGORIES[q.cat]||CATEGORIES['Urgences Vitales'];
 
   document.getElementById('q-counter').textContent=`${currentQ+1} / ${questions.length}`;
-  document.getElementById('q-score-top').textContent=`${score} ✓`;
+  document.getElementById('q-score-ok').textContent=`${score} ✓`;
+  document.getElementById('q-score-ko').textContent=`${currentQ - score} ✗`;
   const fill=document.getElementById('progress-fill');
   fill.style.width=Math.round((currentQ/questions.length)*100)+'%';
   fill.style.background=c.color;
@@ -384,8 +388,8 @@ function checkAnswer(chosen) {
     else w.className='ans-wrap other';
   });
 
-  const btn=document.getElementById('next-btn');
-  btn.style.display='block';
+  document.getElementById('q-score-ok').textContent=`${score} ✓`;
+  document.getElementById('q-score-ko').textContent=`${currentQ + 1 - score} ✗`;
 
   // Montrer le bouton de signalement après la réponse
   document.getElementById('report-section').style.display='block';
@@ -409,8 +413,10 @@ function sendReport() {
   const q=questions[currentQ];
   document.getElementById('report-confirm').style.display='none';
   if(SCRIPT_URL!=='REMPLACER_ICI_URL_APPS_SCRIPT') {
-    fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'report',numero:q.num,prenom:playerName,commentaire:text})
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      body:   JSON.stringify({type:'report', numero:q.num, prenom:playerName, commentaire:text})
     }).catch(()=>{});
   }
   document.getElementById('report-text').value='';
@@ -445,8 +451,11 @@ function showEnd() {
 
 function saveScore(pct) {
   if(SCRIPT_URL==='REMPLACER_ICI_URL_APPS_SCRIPT')return;
-  fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prenom:playerName,score,total:questions.length,pct})}).catch(()=>{});
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode:   'no-cors',
+    body:   JSON.stringify({prenom:playerName, score, total:questions.length, pct})
+  }).catch(()=>{});
 }
 
 function showLeaderboard() {
