@@ -150,6 +150,37 @@
 
     /* SVG bolt */
     .bolt-svg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+
+    /* FIREWORKS */
+    #fw-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;display:none;}
+    .bravo-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:1000;
+      background:var(--black);color:var(--cream);font-size:42px;font-weight:900;
+      padding:20px 40px;border-radius:20px;pointer-events:none;
+      animation:bravoIn .5s cubic-bezier(.34,1.56,.64,1) .4s forwards;}
+    @keyframes bravoIn{to{transform:translate(-50%,-50%) scale(1);}}
+    .bravo-banner.out{animation:bravoOut .4s ease-in forwards;}
+    @keyframes bravoOut{to{transform:translate(-50%,-50%) scale(0);opacity:0;}}
+
+    /* FORMATEUR */
+    #screen-formateur{padding-top:0;gap:0;background:var(--cream);}
+    .fmt-header{position:sticky;top:0;background:var(--black);padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:10;margin:0 -16px;width:calc(100% + 32px);}
+    .fmt-back{background:none;border:none;color:var(--cream);cursor:pointer;padding:4px;font-size:20px;line-height:1;display:flex;align-items:center;}
+    .fmt-title{color:var(--cream);font-size:16px;font-weight:800;flex:1;}
+    .fmt-count{color:#888;font-size:12px;font-weight:700;}
+    .fmt-search{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:var(--radius-sm);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;background:var(--card);outline:none;margin:12px 0;transition:border-color .2s;}
+    .fmt-search:focus{border-color:var(--red);}
+    .fmt-cat-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;padding:8px 0 6px;margin-top:8px;display:flex;align-items:center;gap:8px;}
+    .fmt-q-card{background:var(--card);border-radius:var(--radius-sm);border:1.5px solid var(--border);margin-bottom:10px;overflow:hidden;}
+    .fmt-q-head{padding:12px 14px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;}
+    .fmt-q-num{font-size:10px;font-weight:800;color:var(--muted);flex-shrink:0;margin-top:3px;min-width:28px;}
+    .fmt-q-text{font-size:14px;font-weight:700;line-height:1.45;flex:1;}
+    .fmt-q-body{border-top:1px solid var(--border);padding:10px 14px;display:none;flex-direction:column;gap:6px;}
+    .fmt-q-card.open .fmt-q-body{display:flex;}
+    .fmt-opt{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:8px;font-size:13px;font-weight:600;}
+    .fmt-opt.correct{background:var(--c-green-bg);color:#2A6B3A;}
+    .fmt-opt.wrong{background:var(--cream);color:var(--muted);}
+    .fmt-opt-letter{font-size:11px;font-weight:800;min-width:18px;flex-shrink:0;margin-top:1px;}
+    .fmt-expl{font-size:12px;color:var(--muted);font-style:italic;margin-left:26px;line-height:1.5;}
   </style>
 </head>
 <body>
@@ -238,6 +269,17 @@
   </div>
 </div>
 
+<!-- FORMATEUR -->
+<div id="screen-formateur" class="screen">
+  <div class="fmt-header">
+    <button class="fmt-back" onclick="exitFormateur()">←</button>
+    <span class="fmt-title">⚡ Mode Formateur</span>
+    <span class="fmt-count" id="fmt-count"></span>
+  </div>
+  <input class="fmt-search" type="search" id="fmt-search" placeholder="Rechercher une question…" oninput="filterQuestions()">
+  <div id="fmt-list"></div>
+</div>
+
 <!-- END -->
 <div id="screen-end" class="screen">
   <div class="end-logo-wrap">
@@ -284,13 +326,31 @@ let allQuestions=[], questions=[], currentQ=0, score=0, playerName='', answered=
 window.addEventListener('DOMContentLoaded', loadQuestions);
 
 function loadQuestions() {
-  if (SHEET_CSV_URL === 'REMPLACER_ICI_URL_CSV_QUESTIONS') { loadDemoQuestions(); return; }
-  fetch(SHEET_CSV_URL)
-    .then(r => r.text())
-    .then(csv => { allQuestions = parseCSV(csv); allQuestions.length ? initIntro() : loadDemoQuestions(); })
-    .catch(loadDemoQuestions);
+  // Pas d'URL configurée → démo immédiate
+  if (!SHEET_CSV_URL || SHEET_CSV_URL === 'REMPLACER_ICI_URL_CSV_QUESTIONS') {
+    loadDemoQuestions(); return;
+  }
+  // Fallback garanti si le fetch ne répond pas dans 6s
+  const fallback = setTimeout(loadDemoQuestions, 6000);
+  try {
+    fetch(SHEET_CSV_URL)
+      .then(r => r.text())
+      .then(csv => {
+        clearTimeout(fallback);
+        const q = parseCSV(csv);
+        allQuestions = q.length ? q : DEMO_QUESTIONS;
+        initIntro();
+      })
+      .catch(() => { clearTimeout(fallback); loadDemoQuestions(); });
+  } catch(e) {
+    clearTimeout(fallback); loadDemoQuestions();
+  }
 }
 
+function loadDemoQuestions() {
+  allQuestions = DEMO_QUESTIONS;
+  initIntro();
+}
 function parseCSV(csv) {
   const lines = csv.trim().split('\n'), qs = [];
   for (let i = 1; i < lines.length; i++) {
@@ -302,7 +362,7 @@ function parseCSV(csv) {
       opts: [c[2].trim(), c[3].trim(), c[4].trim(), c[5].trim()],
       ok:   ['A','B','C','D'].indexOf(c[6].trim().toUpperCase()),
       expls:[c[7].trim(), c[8].trim(), c[9].trim(), c[10].trim()],
-      num:  c[11] ? c[11].trim() : `Q${String(i).padStart(3,'0')}` // numero_question
+      num:  c[11] ? c[11].trim() : `Q${String(i).padStart(3,'0')}`
     });
   }
   return qs;
@@ -314,10 +374,9 @@ function splitCSV(line) {
   r.push(cur);return r;
 }
 
-function loadDemoQuestions() { allQuestions = DEMO_QUESTIONS; initIntro(); }
-
 function initIntro() {
   const preview = document.getElementById('cats-preview');
+  preview.innerHTML = '';
   Object.entries(CATEGORIES).forEach(([cat, c]) => {
     preview.innerHTML += `<div class="cat-pill" style="background:${c.bg};color:${c.color};">
       <span class="cat-pill-dot" style="background:${c.color};"></span>
@@ -325,28 +384,41 @@ function initIntro() {
   });
   document.getElementById('q-total').textContent = allQuestions.length;
   document.getElementById('q-per-game').textContent = Math.min(NB_QUESTIONS, allQuestions.length);
-  document.getElementById('screen-loading').classList.remove('active');
-  document.getElementById('screen-intro').classList.add('active');
-  document.getElementById('start-btn').addEventListener('click', startQuiz);
-  document.getElementById('player-name').addEventListener('keydown', e => e.key==='Enter' && startQuiz());
+  showScreen('screen-intro');
+  // onclick évite les doublons si initIntro est rappelé
+  document.getElementById('start-btn').onclick = startQuiz;
+  document.getElementById('player-name').onkeydown = e => { if(e.key==='Enter') startQuiz(); };
 }
+
+let selectionTimeout = null;
+let selectionInterval = null;
 
 function startQuiz() {
   playerName = document.getElementById('player-name').value.trim() || 'Anonyme';
+
+  // Mode formateur
+  if (playerName.toLowerCase() === 'formateur') {
+    showFormateurMode();
+    return;
+  }
+
+  // Annuler toute transition précédente encore en cours
+  if (selectionTimeout)  { clearTimeout(selectionTimeout);   selectionTimeout = null; }
+  if (selectionInterval) { clearInterval(selectionInterval); selectionInterval = null; }
+
   questions = shuffle([...allQuestions]).slice(0, NB_QUESTIONS);
   currentQ=0; score=0; answered=false;
   catScores={};
   Object.keys(CATEGORIES).forEach(c => catScores[c]={correct:0,total:0});
 
   // Ambulance screen
-  document.getElementById('screen-intro').classList.remove('active');
-  document.getElementById('screen-selecting').classList.add('active');
+  showScreen('screen-selecting');
 
-  // Reset and replay ambulance animation
+  // Reset ambulance animation explicitement
   const amb = document.getElementById('ambulance');
   amb.style.animation = 'none';
-  amb.offsetHeight; // reflow
-  amb.style.animation = '';
+  void amb.offsetWidth;
+  amb.style.animation = 'drive 2.8s cubic-bezier(.4,0,.6,1) forwards';
 
   // Messages séquentiels
   const labels = ['Mélange des questions', 'Sélection en cours', 'C\'est parti !'];
@@ -354,15 +426,15 @@ function startQuiz() {
   const dots = '<span class="sel-dots"><span>.</span><span>.</span><span>.</span></span>';
   let li = 0;
   el.innerHTML = labels[0] + dots;
-  const iv = setInterval(() => {
+  selectionInterval = setInterval(() => {
     li++;
     if (li < labels.length) el.innerHTML = labels[li] + (li < labels.length-1 ? dots : ' ⚡');
-    else clearInterval(iv);
+    else { clearInterval(selectionInterval); selectionInterval = null; }
   }, 1000);
 
-  setTimeout(() => {
-    document.getElementById('screen-selecting').classList.remove('active');
-    document.getElementById('screen-question').classList.add('active');
+  selectionTimeout = setTimeout(() => {
+    selectionTimeout = null;
+    showScreen('screen-question');
     buildDots(); renderQuestion();
   }, 3100);
 }
@@ -370,6 +442,20 @@ function startQuiz() {
 function shuffle(a) {
   for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
   return a;
+}
+
+// Affiche un seul écran, masque tous les autres
+const ALL_SCREENS = ['screen-loading','screen-selecting','screen-intro','screen-question','screen-end','screen-formateur'];
+function showScreen(id) {
+  ALL_SCREENS.forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.classList.toggle('active', s === id);
+  });
+}
+
+function cancelSelection() {
+  if (selectionTimeout)  { clearTimeout(selectionTimeout);   selectionTimeout = null; }
+  if (selectionInterval) { clearInterval(selectionInterval); selectionInterval = null; }
 }
 
 function buildDots() {
@@ -491,8 +577,8 @@ function sendReport() {
 }
 
 function showEnd() {
-  document.getElementById('screen-question').classList.remove('active');
-  document.getElementById('screen-end').classList.add('active');
+  cancelSelection();
+  showScreen('screen-end');
   window.scrollTo(0,0);
   const pct=Math.round((score/questions.length)*100);
   const l = pct>=80 ? {color:'#5BAD72', bg:'#EAF3DE', emoji:'🏆'}
@@ -521,9 +607,141 @@ function showEnd() {
       <div class="cat-result-bar"><div class="cat-result-fill" style="width:${p}%;background:${c.color};"></div></div></div>`;
   });
   saveScore(pct);
+  if (pct >= 80) setTimeout(launchFireworks, 300);
 }
 
-function saveScore(pct) {
+// ── FIREWORKS ─────────────────────────────────────────────────
+function launchFireworks() {
+  const canvas = document.getElementById('fw-canvas');
+  const ctx    = canvas.getContext('2d');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+
+  // Bravo banner
+  const banner = document.createElement('div');
+  banner.className = 'bravo-banner';
+  banner.textContent = '🎉 BRAVO !';
+  document.body.appendChild(banner);
+
+  const colors = ['#E24B4A','#EF9F27','#F2EDE3','#5BAD72','#7F77DD','#378ADD','#fff'];
+  let particles = [];
+
+  function burst(x, y) {
+    for (let i = 0; i < 70; i++) {
+      const angle  = (Math.PI * 2 * i) / 70 + (Math.random() - .5) * .5;
+      const speed  = 3 + Math.random() * 6;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1, size: 3 + Math.random() * 4, gravity: .12
+      });
+    }
+  }
+
+  // Multiple bursts staggered
+  const positions = [
+    [.25, .3],[.75, .25],[.5, .2],[.15, .5],[.85, .4],[.6, .35],[.4, .15]
+  ];
+  positions.forEach(([fx,fy], i) => {
+    setTimeout(() => burst(canvas.width * fx, canvas.height * fy), i * 220);
+  });
+
+  let frame = 0;
+  function animate() {
+    frame++;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles = particles.filter(p => p.alpha > .02);
+    particles.forEach(p => {
+      p.x  += p.vx; p.y  += p.vy;
+      p.vy += p.gravity;
+      p.vx *= .98; p.alpha -= .016;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle   = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+    if (frame < 220) requestAnimationFrame(animate);
+    else {
+      canvas.style.display = 'none';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+  animate();
+
+  // Remove banner after 2.5s
+  setTimeout(() => {
+    banner.classList.add('out');
+    setTimeout(() => banner.remove(), 400);
+  }, 2500);
+}
+
+// ── MODE FORMATEUR ────────────────────────────────────────────
+function showFormateurMode() {
+  showScreen('screen-formateur');
+  document.getElementById('fmt-count').textContent = allQuestions.length + ' questions';
+  renderFormateur(allQuestions);
+}
+
+function exitFormateur() {
+  showScreen('screen-intro');
+  document.getElementById('player-name').value = '';
+}
+
+function filterQuestions() {
+  const q = document.getElementById('fmt-search').value.toLowerCase();
+  const filtered = q.length > 1
+    ? allQuestions.filter(q2 => q2.q.toLowerCase().includes(q) || q2.cat.toLowerCase().includes(q))
+    : allQuestions;
+  document.getElementById('fmt-count').textContent = filtered.length + ' questions';
+  renderFormateur(filtered);
+}
+
+function renderFormateur(qs) {
+  const container = document.getElementById('fmt-list');
+  container.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  const bycat   = {};
+  qs.forEach(q => { (bycat[q.cat] = bycat[q.cat]||[]).push(q); });
+
+  Object.entries(bycat).forEach(([cat, items]) => {
+    const c = CATEGORIES[cat] || {color:'#888', bg:'#eee'};
+    const catDiv = document.createElement('div');
+    catDiv.innerHTML = `<div class="fmt-cat-title" style="color:${c.color};">
+      <span style="width:10px;height:10px;border-radius:50%;background:${c.color};display:inline-block;flex-shrink:0;"></span>
+      ${cat} <span style="font-weight:400;color:var(--muted);">(${items.length})</span></div>`;
+    container.appendChild(catDiv);
+
+    items.forEach((q, i) => {
+      const card = document.createElement('div');
+      card.className = 'fmt-q-card';
+      const opts = q.opts.map((o, j) => {
+        const correct = j === q.ok;
+        return `<div class="fmt-opt ${correct?'correct':'wrong'}">
+          <span class="fmt-opt-letter" style="${correct?'color:#2A6B3A;':'color:var(--muted);'}">${letters[j]}${correct?' ✓':''}</span>
+          <div>
+            <div>${o}</div>
+            ${q.expls && q.expls[j] ? `<div class="fmt-expl">${q.expls[j]}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="fmt-q-head" onclick="this.parentElement.classList.toggle('open')">
+          <span class="fmt-q-num">${q.num||''}</span>
+          <span class="fmt-q-text">${q.q}</span>
+          <span style="font-size:16px;color:var(--muted);flex-shrink:0;margin-left:4px;">▾</span>
+        </div>
+        <div class="fmt-q-body">${opts}</div>`;
+      container.appendChild(card);
+    });
+  });
+}
   if(SCRIPT_URL==='REMPLACER_ICI_URL_APPS_SCRIPT')return;
   fetch(SCRIPT_URL, {
     method: 'POST',
@@ -554,16 +772,15 @@ function showLeaderboard() {
 }
 
 function restartQuiz() {
-  document.getElementById('screen-end').classList.remove('active');
+  cancelSelection();
   document.getElementById('leaderboard-wrap').style.display='none';
-  document.getElementById('screen-intro').classList.add('active');
+  showScreen('screen-intro');
 }
 
 function goHome() {
-  document.getElementById('screen-question').classList.remove('active');
-  document.getElementById('screen-end').classList.remove('active');
+  cancelSelection();
   document.getElementById('leaderboard-wrap').style.display='none';
-  document.getElementById('screen-intro').classList.add('active');
+  showScreen('screen-intro');
 }
 
 // QUESTIONS DE DÉMO
@@ -580,5 +797,6 @@ const DEMO_QUESTIONS=[
   {cat:'Atteintes Particulières',q:"Face à une victime en contact avec un conducteur électrique, quelle est la première action ?",opts:["Tirer la victime","S'approcher prudemment","Ne pas s'approcher avant que l'alimentation soit coupée","Arroser avec de l'eau"],ok:2,num:'Q021',expls:["Cela expose le secouriste à l'électrisation.","S'approcher sans coupure du courant est mortel.","Correct. Ne jamais approcher ni toucher avant coupure certaine (07PR01).","L'eau est conductrice et aggraverait le danger."]}
 ];
 </script>
+<canvas id="fw-canvas"></canvas>
 </body>
 </html>
