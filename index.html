@@ -65,7 +65,11 @@
 
     /* QUESTION */
     #screen-question{padding-top:18px;gap:0;}
-    .q-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+    .q-navbar{display:flex;align-items:center;justify-content:space-between;padding:16px 0 10px;gap:8px;}
+    .q-home-btn{background:none;border:none;cursor:pointer;padding:6px;color:var(--muted);border-radius:8px;display:flex;align-items:center;flex-shrink:0;transition:color .15s,background .15s;}
+    .q-home-btn:active{background:var(--cream-dark);}
+    .q-home-btn svg{width:20px;height:20px;}
+    .q-topbar{display:flex;justify-content:flex-start;align-items:center;margin-bottom:10px;}
     .q-num{font-size:13px;font-weight:700;color:var(--muted);}
     .q-pts{display:flex;gap:6px;align-items:center;}
     .q-pts-ok{font-size:13px;font-weight:800;color:#2A6B3A;background:var(--c-green-bg);padding:3px 10px;border-radius:20px;}
@@ -171,12 +175,21 @@
 
 <!-- QUESTION -->
 <div id="screen-question" class="screen">
-  <div class="q-topbar">
-    <span class="q-num" id="q-counter">1 / 10</span>
+  <div class="q-navbar">
+    <button class="q-home-btn" onclick="goHome()" title="Retour à l'accueil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="logo sm">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div class="logo-text"><span class="logo-defi">Défi</span><span class="logo-brille">brille</span></div>
+    </div>
     <div class="q-pts">
       <span class="q-pts-ok" id="q-score-ok">0 ✓</span>
       <span class="q-pts-ko" id="q-score-ko">0 ✗</span>
     </div>
+  </div>
+  <div class="q-topbar">
+    <span class="q-num" id="q-counter">1 / 10</span>
   </div>
   <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
   <div class="tp-dots" id="tp-dots"></div>
@@ -226,9 +239,10 @@
 
 <script>
 // ================================================================
+// 1. URL CSV de la feuille Questions publiée (voir README.md §2)
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1YlZ5K4aEeISSeK4tc_DleUtBLXwaSlmGEqb7LMZ8v1g/gviz/tq?tqx=out:csv&sheet=Questions';
 
-// 2. URL de votre Apps Script déployé
+// 2. URL de votre Apps Script déployé (voir README.md §4)
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1t0oPO3mnu5orXWY-9AYVUZr-ylV-1JS-jNB5E3YIC1tfyuMV6EQTxI2Fd-jLnp2O/exec';
 const NB_QUESTIONS  = 10; // Nombre de questions par partie
 // ================================================================
@@ -391,6 +405,10 @@ function checkAnswer(chosen) {
   document.getElementById('q-score-ok').textContent=`${score} ✓`;
   document.getElementById('q-score-ko').textContent=`${currentQ + 1 - score} ✗`;
 
+  const btn=document.getElementById('next-btn');
+  btn.style.display='block';
+  btn.onclick=nextQuestion;
+
   // Montrer le bouton de signalement après la réponse
   document.getElementById('report-section').style.display='block';
 
@@ -480,6 +498,13 @@ function showLeaderboard() {
 }
 
 function restartQuiz() {
+  document.getElementById('screen-end').classList.remove('active');
+  document.getElementById('leaderboard-wrap').style.display='none';
+  document.getElementById('screen-intro').classList.add('active');
+}
+
+function goHome() {
+  document.getElementById('screen-question').classList.remove('active');
   document.getElementById('screen-end').classList.remove('active');
   document.getElementById('leaderboard-wrap').style.display='none';
   document.getElementById('screen-intro').classList.add('active');
