@@ -113,12 +113,25 @@
     .report-send{margin-top:8px;padding:9px 18px;background:var(--black);color:var(--cream);border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;}
     .report-confirm{display:none;font-size:12px;font-weight:700;color:var(--c-green);margin-top:8px;}
 
-    /* END */
-    #screen-end{padding-top:0;align-items:center;gap:0;}
-    .end-hero{width:100%;background:var(--black);border-radius:0 0 var(--radius) var(--radius);padding:40px 24px 36px;text-align:center;margin-bottom:24px;}
-    .end-pct{font-size:64px;font-weight:900;color:var(--red);line-height:1;}
-    .end-score{font-size:15px;font-weight:600;color:#777;margin-top:4px;}
-    .end-msg{font-size:15px;font-weight:700;color:var(--cream);margin-top:12px;line-height:1.5;max-width:280px;}
+    /* SELECTING SCREEN — ambulance */
+    #screen-selecting{align-items:center;justify-content:center;gap:0;}
+    .sel-inner{display:flex;flex-direction:column;align-items:center;width:100%;gap:32px;}
+    .ambulance-wrap{width:100%;position:relative;height:64px;overflow:hidden;}
+    .ambulance-emoji{position:absolute;top:4px;font-size:44px;animation:drive 1.8s cubic-bezier(.4,0,.6,1) forwards;will-change:transform;}
+    .road{position:absolute;bottom:0;left:0;right:0;height:3px;background:repeating-linear-gradient(90deg,var(--muted) 0,var(--muted) 18px,transparent 18px,transparent 36px);opacity:.35;}
+    @keyframes drive{from{left:-70px;}to{left:calc(100% + 10px);}}
+    .sel-label{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:.3px;}
+    .sel-dots span{animation:blink 1.2s infinite;} .sel-dots span:nth-child(2){animation-delay:.2s;} .sel-dots span:nth-child(3){animation-delay:.4s;}
+    @keyframes blink{0%,80%,100%{opacity:0;}40%{opacity:1;}}
+
+    /* END SCREEN — redesign */
+    #screen-end{padding-top:32px;align-items:center;gap:0;}
+    .end-logo-wrap{margin-bottom:28px;}
+    .end-score-ring{width:120px;height:120px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 16px;border:4px solid;}
+    .end-pct{font-size:34px;font-weight:900;line-height:1;}
+    .end-fraction{font-size:13px;font-weight:700;opacity:.7;margin-top:2px;}
+    .end-msg{font-size:16px;font-weight:800;text-align:center;line-height:1.5;max-width:280px;margin:0 auto 28px;color:var(--black);}
+    .end-divider{width:100%;height:1.5px;background:var(--border);margin-bottom:20px;}
     .end-body{width:100%;padding:0 0 8px;}
     .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
     .cat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:24px;}
@@ -145,6 +158,21 @@
 <div id="screen-loading" class="screen active">
   <div class="loader-ring"></div>
   <p style="font-size:13px;font-weight:700;color:var(--muted);">Chargement…</p>
+</div>
+
+<!-- SELECTING — ambulance -->
+<div id="screen-selecting" class="screen">
+  <div class="sel-inner">
+    <div class="logo lg">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div class="logo-text"><span class="logo-defi">Défi</span><span class="logo-brille">brille</span></div>
+    </div>
+    <div class="ambulance-wrap">
+      <div class="ambulance-emoji" id="ambulance">🚑</div>
+      <div class="road"></div>
+    </div>
+    <p class="sel-label" id="sel-label">Sélection des questions<span class="sel-dots"><span>.</span><span>.</span><span>.</span></span></p>
+  </div>
 </div>
 
 <!-- INTRO -->
@@ -212,19 +240,18 @@
 
 <!-- END -->
 <div id="screen-end" class="screen">
-  <div class="end-hero">
-    <div class="logo" style="justify-content:center;margin-bottom:24px;">
-      <div class="logo-icon" style="width:44px;height:44px;border-radius:12px;">
-        <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:var(--cream);"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      </div>
-      <div class="logo-text">
-        <span class="logo-defi" style="font-size:28px;">Défi</span><span class="logo-brille" style="font-size:28px;color:var(--cream);">brille</span>
-      </div>
+  <div class="end-logo-wrap">
+    <div class="logo sm" style="justify-content:center;">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div class="logo-text"><span class="logo-defi">Défi</span><span class="logo-brille">brille</span></div>
     </div>
-    <div class="end-pct" id="end-pct">0%</div>
-    <div class="end-score" id="end-score-label">0 / 10</div>
-    <div class="end-msg" id="end-msg"></div>
   </div>
+  <div class="end-score-ring" id="end-ring">
+    <span class="end-pct" id="end-pct">0%</span>
+    <span class="end-fraction" id="end-fraction">0 / 10</span>
+  </div>
+  <p class="end-msg" id="end-msg"></p>
+  <div class="end-divider"></div>
   <div class="end-body">
     <p class="section-title">Par catégorie</p>
     <div class="cat-grid" id="cat-breakdown"></div>
@@ -239,11 +266,8 @@
 
 <script>
 // ================================================================
-// 1. URL CSV de la feuille Questions publiée (voir README.md §2)
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1YlZ5K4aEeISSeK4tc_DleUtBLXwaSlmGEqb7LMZ8v1g/gviz/tq?tqx=out:csv&sheet=Questions';
-
-// 2. URL de votre Apps Script déployé (voir README.md §4)
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1t0oPO3mnu5orXWY-9AYVUZr-ylV-1JS-jNB5E3YIC1tfyuMV6EQTxI2Fd-jLnp2O/exec';
+const SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycby1t0oPO3mnu5orXWY-9AYVUZr-ylV-1JS-jNB5E3YIC1tfyuMV6EQTxI2Fd-jLnp2O/exec';
 const NB_QUESTIONS  = 10; // Nombre de questions par partie
 // ================================================================
 
@@ -309,14 +333,38 @@ function initIntro() {
 
 function startQuiz() {
   playerName = document.getElementById('player-name').value.trim() || 'Anonyme';
-  // Sélection aléatoire de NB_QUESTIONS questions
   questions = shuffle([...allQuestions]).slice(0, NB_QUESTIONS);
   currentQ=0; score=0; answered=false;
   catScores={};
   Object.keys(CATEGORIES).forEach(c => catScores[c]={correct:0,total:0});
+
+  // Ambulance screen
   document.getElementById('screen-intro').classList.remove('active');
-  document.getElementById('screen-question').classList.add('active');
-  buildDots(); renderQuestion();
+  document.getElementById('screen-selecting').classList.add('active');
+
+  // Reset and replay ambulance animation
+  const amb = document.getElementById('ambulance');
+  amb.style.animation = 'none';
+  amb.offsetHeight; // reflow
+  amb.style.animation = '';
+
+  // Messages séquentiels
+  const labels = ['Mélange des questions', 'Sélection en cours', 'C\'est parti !'];
+  const el = document.getElementById('sel-label');
+  const dots = '<span class="sel-dots"><span>.</span><span>.</span><span>.</span></span>';
+  let li = 0;
+  el.innerHTML = labels[0] + dots;
+  const iv = setInterval(() => {
+    li++;
+    if (li < labels.length) el.innerHTML = labels[li] + (li < labels.length-1 ? dots : ' ⚡');
+    else clearInterval(iv);
+  }, 600);
+
+  setTimeout(() => {
+    document.getElementById('screen-selecting').classList.remove('active');
+    document.getElementById('screen-question').classList.add('active');
+    buildDots(); renderQuestion();
+  }, 1900);
 }
 
 function shuffle(a) {
@@ -447,19 +495,27 @@ function showEnd() {
   document.getElementById('screen-end').classList.add('active');
   window.scrollTo(0,0);
   const pct=Math.round((score/questions.length)*100);
-  const msg=pct>=80?`Excellent ${playerName} ! Tu maîtrises les gestes qui sauvent. ⚡`
-            :pct>=50?`Bien joué ! Encore quelques révisions et tu brilles. 💪`
-            :`Continue à t'entraîner — ces gestes peuvent sauver des vies.`;
-  document.getElementById('end-pct').textContent=pct+'%';
-  document.getElementById('end-score-label').textContent=score+' / '+questions.length+' bonnes réponses';
+  const l = pct>=80 ? {color:'#5BAD72', bg:'#EAF3DE', emoji:'🏆'}
+          : pct>=50 ? {color:'#EF9F27', bg:'#FAEEDA', emoji:'💪'}
+          :           {color:'#E24B4A', bg:'#FCEBEB', emoji:'📖'};
+  const msg = pct>=80 ? `${l.emoji} Excellent ${playerName} ! Tu maîtrises les gestes qui sauvent.`
+            : pct>=50 ? `${l.emoji} Bien joué ! Encore quelques révisions et tu brilles.`
+            :           `${l.emoji} Continue à t'entraîner — ces gestes peuvent sauver des vies.`;
+
+  const ring=document.getElementById('end-ring');
+  ring.style.background=l.bg; ring.style.borderColor=l.color;
+  const pctEl=document.getElementById('end-pct');
+  pctEl.textContent=pct+'%'; pctEl.style.color=l.color;
+  document.getElementById('end-fraction').textContent=score+' / '+questions.length;
   document.getElementById('end-msg').textContent=msg;
+
   const bd=document.getElementById('cat-breakdown'); bd.innerHTML='';
   Object.entries(catScores).forEach(([cat,data])=>{
     if(!data.total)return;
     const c=CATEGORIES[cat], p=Math.round((data.correct/data.total)*100);
     bd.innerHTML+=`<div class="cat-result" style="background:${c.bg};">
       <div class="cat-result-label" style="color:${c.color};">
-        <span style="width:8px;height:8px;border-radius:50%;background:${c.color};flex-shrink:0;"></span>
+        <span style="width:8px;height:8px;border-radius:50%;background:${c.color};flex-shrink:0;display:inline-block;"></span>
         <span>${cat.split(' ')[0]}</span></div>
       <div class="cat-result-score" style="color:${c.color};">${data.correct}/${data.total}</div>
       <div class="cat-result-bar"><div class="cat-result-fill" style="width:${p}%;background:${c.color};"></div></div></div>`;
