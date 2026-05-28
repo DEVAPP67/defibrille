@@ -159,7 +159,7 @@
     .cat-filter-btn.active-cat{border-width:2px;opacity:1;}
     .cat-filter-btn.inactive-cat{opacity:.45;}
     /* OR separator */
-    .cat-or-wrap{display:flex;align-items:center;gap:10px;margin:16px 0 14px;}
+    .cat-or-wrap{display:flex;align-items:center;gap:10px;margin:28px 0 16px;}
     .cat-or-line{flex:1;height:1px;background:var(--border);}
     .cat-or-text{font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;}
     /* Category theme grid */
@@ -399,13 +399,12 @@ function initIntro() {
   const grid = document.getElementById('cat-theme-grid');
   grid.innerHTML = '';
   Object.entries(CATEGORIES).forEach(([cat, c]) => {
-    const count = allQuestions.filter(q => q.cat === cat).length;
     const btn = document.createElement('button');
     btn.className = 'cat-theme-btn';
     btn.style.background = c.bg;
     btn.style.color = c.color;
     btn.innerHTML = `<span style="font-size:18px;flex-shrink:0;">${c.emoji}</span>
-      <span>${cat}<br><span style="font-size:11px;font-weight:600;opacity:.7;">${count} question${count>1?'s':''}</span></span>`;
+      <span>${cat}</span>`;
     btn.onclick = () => startQuizWithCat(cat);
     grid.appendChild(btn);
   });
