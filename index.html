@@ -151,15 +151,21 @@
     /* SVG bolt */
     .bolt-svg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
 
-    /* FIREWORKS */
-    #fw-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;display:none;}
-    .bravo-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:1000;
-      background:var(--black);color:var(--cream);font-size:42px;font-weight:900;
-      padding:20px 40px;border-radius:20px;pointer-events:none;
-      animation:bravoIn .5s cubic-bezier(.34,1.56,.64,1) .4s forwards;}
-    @keyframes bravoIn{to{transform:translate(-50%,-50%) scale(1);}}
-    .bravo-banner.out{animation:bravoOut .4s ease-in forwards;}
-    @keyframes bravoOut{to{transform:translate(-50%,-50%) scale(0);opacity:0;}}
+    /* CATEGORY FILTER */
+    .cat-filter{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:24px;}
+    .cat-filter-btn{padding:7px 13px;border-radius:20px;border:2px solid transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s;background:var(--cream-dark);color:var(--muted);}
+    .cat-filter-btn:active{transform:scale(.95);}
+    .cat-filter-btn.active-all{background:var(--black);color:var(--cream);border-color:var(--black);}
+    .cat-filter-btn.active-cat{border-width:2px;opacity:1;}
+    .cat-filter-btn.inactive-cat{opacity:.45;}
+    /* OR separator */
+    .cat-or-wrap{display:flex;align-items:center;gap:10px;margin:16px 0 14px;}
+    .cat-or-line{flex:1;height:1px;background:var(--border);}
+    .cat-or-text{font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;}
+    /* Category theme grid */
+    .cat-theme-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px;}
+    .cat-theme-btn{padding:12px 14px;border-radius:var(--radius-sm);border:none;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;transition:opacity .15s,transform .1s;line-height:1.3;}
+    .cat-theme-btn:active{transform:scale(.97);}
 
     /* FORMATEUR */
     #screen-formateur{padding-top:0;gap:0;background:var(--cream);}
@@ -220,7 +226,7 @@
     </div>
   </div>
 
-  <p style="font-size:13px;font-weight:600;color:var(--muted);text-align:center;margin-bottom:20px;line-height:1.6;">
+  <p style="font-size:13px;font-weight:600;color:var(--muted);text-align:center;margin-bottom:16px;line-height:1.6;">
     <strong id="q-per-game" style="color:var(--black);">10</strong> questions aléatoires
     sur <strong id="q-total" style="color:var(--red);">…</strong> disponibles · PSE 2024
   </p>
@@ -230,6 +236,13 @@
   <label class="field-label" for="player-name">Ton prénom</label>
   <input class="field-input" type="text" id="player-name" placeholder="Ex : Marie" maxlength="30" autocomplete="off">
   <button class="btn-main" id="start-btn">Commencer ⚡</button>
+
+  <div class="cat-or-wrap">
+    <div class="cat-or-line"></div>
+    <span class="cat-or-text">ou dans une catégorie</span>
+    <div class="cat-or-line"></div>
+  </div>
+  <div class="cat-theme-grid" id="cat-theme-grid"></div>
 </div>
 
 <!-- QUESTION -->
@@ -297,12 +310,7 @@
   <div class="end-body">
     <p class="section-title">Par catégorie</p>
     <div class="cat-grid" id="cat-breakdown"></div>
-    <div id="leaderboard-wrap" style="display:none;">
-      <p class="section-title">🏆 Classement</p>
-      <div class="leaderboard" id="leaderboard-list"></div>
-    </div>
-    <button class="btn-main" onclick="restartQuiz()" style="margin-bottom:10px;">⚡ Rejouer</button>
-    <button class="btn-outline" onclick="showLeaderboard()">Voir les scores</button>
+    <button class="btn-main" onclick="restartQuiz()">⚡ Rejouer</button>
   </div>
 </div>
 
@@ -362,7 +370,8 @@ function parseCSV(csv) {
       opts: [c[2].trim(), c[3].trim(), c[4].trim(), c[5].trim()],
       ok:   ['A','B','C','D'].indexOf(c[6].trim().toUpperCase()),
       expls:[c[7].trim(), c[8].trim(), c[9].trim(), c[10].trim()],
-      num:  c[11] ? c[11].trim() : `Q${String(i).padStart(3,'0')}`
+      num:  c[11] ? c[11].trim() : `Q${String(i).padStart(3,'0')}`,
+      validated: c[12] ? c[12].trim().toLowerCase() : ''
     });
   }
   return qs;
@@ -374,7 +383,10 @@ function splitCSV(line) {
   r.push(cur);return r;
 }
 
+let selectedCat = null;
+
 function initIntro() {
+  // Pills statiques décoratives (comme avant)
   const preview = document.getElementById('cats-preview');
   preview.innerHTML = '';
   Object.entries(CATEGORIES).forEach(([cat, c]) => {
@@ -382,16 +394,36 @@ function initIntro() {
       <span class="cat-pill-dot" style="background:${c.color};"></span>
       <span>${cat.split(' ')[0]}</span></div>`;
   });
+
+  // Boutons de catégorie en grille sous "Commencer"
+  const grid = document.getElementById('cat-theme-grid');
+  grid.innerHTML = '';
+  Object.entries(CATEGORIES).forEach(([cat, c]) => {
+    const count = allQuestions.filter(q => q.cat === cat).length;
+    const btn = document.createElement('button');
+    btn.className = 'cat-theme-btn';
+    btn.style.background = c.bg;
+    btn.style.color = c.color;
+    btn.innerHTML = `<span style="font-size:18px;flex-shrink:0;">${c.emoji}</span>
+      <span>${cat}<br><span style="font-size:11px;font-weight:600;opacity:.7;">${count} question${count>1?'s':''}</span></span>`;
+    btn.onclick = () => startQuizWithCat(cat);
+    grid.appendChild(btn);
+  });
+
   document.getElementById('q-total').textContent = allQuestions.length;
   document.getElementById('q-per-game').textContent = Math.min(NB_QUESTIONS, allQuestions.length);
   showScreen('screen-intro');
-  // onclick évite les doublons si initIntro est rappelé
   document.getElementById('start-btn').onclick = startQuiz;
   document.getElementById('player-name').onkeydown = e => { if(e.key==='Enter') startQuiz(); };
 }
 
 let selectionTimeout = null;
 let selectionInterval = null;
+
+function startQuizWithCat(cat) {
+  selectedCat = cat;
+  startQuiz();
+}
 
 function startQuiz() {
   playerName = document.getElementById('player-name').value.trim() || 'Anonyme';
@@ -406,7 +438,9 @@ function startQuiz() {
   if (selectionTimeout)  { clearTimeout(selectionTimeout);   selectionTimeout = null; }
   if (selectionInterval) { clearInterval(selectionInterval); selectionInterval = null; }
 
-  questions = shuffle([...allQuestions]).slice(0, NB_QUESTIONS);
+  const pool = selectedCat ? allQuestions.filter(q => q.cat === selectedCat) : allQuestions;
+  questions = shuffle([...pool]).slice(0, NB_QUESTIONS);
+  selectedCat = null; // reset pour la prochaine partie
   currentQ=0; score=0; answered=false;
   catScores={};
   Object.keys(CATEGORIES).forEach(c => catScores[c]={correct:0,total:0});
@@ -607,78 +641,6 @@ function showEnd() {
       <div class="cat-result-bar"><div class="cat-result-fill" style="width:${p}%;background:${c.color};"></div></div></div>`;
   });
   saveScore(pct);
-  if (pct >= 80) setTimeout(launchFireworks, 300);
-}
-
-// ── FIREWORKS ─────────────────────────────────────────────────
-function launchFireworks() {
-  const canvas = document.getElementById('fw-canvas');
-  const ctx    = canvas.getContext('2d');
-  canvas.width  = window.innerWidth;
-  canvas.height = window.innerHeight;
-  canvas.style.display = 'block';
-
-  // Bravo banner
-  const banner = document.createElement('div');
-  banner.className = 'bravo-banner';
-  banner.textContent = '🎉 BRAVO !';
-  document.body.appendChild(banner);
-
-  const colors = ['#E24B4A','#EF9F27','#F2EDE3','#5BAD72','#7F77DD','#378ADD','#fff'];
-  let particles = [];
-
-  function burst(x, y) {
-    for (let i = 0; i < 70; i++) {
-      const angle  = (Math.PI * 2 * i) / 70 + (Math.random() - .5) * .5;
-      const speed  = 3 + Math.random() * 6;
-      particles.push({
-        x, y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 2,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        alpha: 1, size: 3 + Math.random() * 4, gravity: .12
-      });
-    }
-  }
-
-  // Multiple bursts staggered
-  const positions = [
-    [.25, .3],[.75, .25],[.5, .2],[.15, .5],[.85, .4],[.6, .35],[.4, .15]
-  ];
-  positions.forEach(([fx,fy], i) => {
-    setTimeout(() => burst(canvas.width * fx, canvas.height * fy), i * 220);
-  });
-
-  let frame = 0;
-  function animate() {
-    frame++;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    particles = particles.filter(p => p.alpha > .02);
-    particles.forEach(p => {
-      p.x  += p.vx; p.y  += p.vy;
-      p.vy += p.gravity;
-      p.vx *= .98; p.alpha -= .016;
-      ctx.save();
-      ctx.globalAlpha = p.alpha;
-      ctx.fillStyle   = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    });
-    if (frame < 220) requestAnimationFrame(animate);
-    else {
-      canvas.style.display = 'none';
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  }
-  animate();
-
-  // Remove banner after 2.5s
-  setTimeout(() => {
-    banner.classList.add('out');
-    setTimeout(() => banner.remove(), 400);
-  }, 2500);
 }
 
 // ── MODE FORMATEUR ────────────────────────────────────────────
@@ -731,10 +693,13 @@ function renderFormateur(qs) {
         </div>`;
       }).join('');
 
+      const vColor = q.validated==='oui' ? '#5BAD72' : q.validated==='non' ? '#E24B4A' : '#C0B8AE';
+      const vTitle = q.validated==='oui' ? 'Validée ✓' : q.validated==='non' ? 'À revoir' : 'Non renseignée';
       card.innerHTML = `
         <div class="fmt-q-head" onclick="this.parentElement.classList.toggle('open')">
           <span class="fmt-q-num">${q.num||''}</span>
           <span class="fmt-q-text">${q.q}</span>
+          <span style="flex-shrink:0;margin-left:8px;width:10px;height:10px;border-radius:50%;display:inline-block;background:${vColor};" title="${vTitle}"></span>
           <span style="font-size:16px;color:var(--muted);flex-shrink:0;margin-left:4px;">▾</span>
         </div>
         <div class="fmt-q-body">${opts}</div>`;
@@ -752,36 +717,13 @@ function saveScore(pct) {
   }).catch(()=>{});
 }
 
-function showLeaderboard() {
-  const wrap=document.getElementById('leaderboard-wrap'); wrap.style.display='block';
-  if(SCRIPT_URL==='REMPLACER_ICI_URL_APPS_SCRIPT'){
-    document.getElementById('leaderboard-list').innerHTML='<p style="font-size:13px;color:var(--muted);font-weight:600;">Configurez l\'Apps Script pour voir le classement.</p>';return;}
-  document.getElementById('leaderboard-list').innerHTML='<p style="font-size:13px;color:var(--muted);font-weight:600;">Chargement…</p>';
-  fetch(SCRIPT_URL).then(r=>r.json()).then(rows=>{
-    const list=document.getElementById('leaderboard-list');
-    if(!rows||!rows.length){list.innerHTML='<p style="font-size:13px;color:var(--muted);">Aucun score.</p>';return;}
-    list.innerHTML='';
-    rows.slice(0,10).forEach((row,i)=>{
-      const isMe=(row.prenom===playerName&&row.score==score);
-      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
-      list.innerHTML+=`<div class="lb-row ${isMe?'me':''}">
-        <span class="lb-rank">${medal||(i+1)}</span>
-        <span class="lb-name">${row.prenom}</span>
-        <span class="lb-score">${row.score}/${row.total}</span>
-        <span class="lb-pct">${row.pct}</span></div>`;
-    });
-  }).catch(()=>{document.getElementById('leaderboard-list').innerHTML='<p style="font-size:13px;color:var(--muted);">Erreur de chargement.</p>';});
-}
-
 function restartQuiz() {
   cancelSelection();
-  document.getElementById('leaderboard-wrap').style.display='none';
   showScreen('screen-intro');
 }
 
 function goHome() {
   cancelSelection();
-  document.getElementById('leaderboard-wrap').style.display='none';
   showScreen('screen-intro');
 }
 
@@ -799,6 +741,5 @@ const DEMO_QUESTIONS=[
   {cat:'Atteintes Particulières',q:"Face à une victime en contact avec un conducteur électrique, quelle est la première action ?",opts:["Tirer la victime","S'approcher prudemment","Ne pas s'approcher avant que l'alimentation soit coupée","Arroser avec de l'eau"],ok:2,num:'Q021',expls:["Cela expose le secouriste à l'électrisation.","S'approcher sans coupure du courant est mortel.","Correct. Ne jamais approcher ni toucher avant coupure certaine (07PR01).","L'eau est conductrice et aggraverait le danger."]}
 ];
 </script>
-<canvas id="fw-canvas"></canvas>
 </body>
 </html>
